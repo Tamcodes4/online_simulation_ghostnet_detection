@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GhostNet Lite - Ocean Monitoring</title>
+  <style>
+    :root {
+      /* Dark Theme (Default) */
+      --bg-primary: #0a0f2c;
+      --bg-secondary: #0f172a;
+      --card-bg: #122240;
+      --text-primary: #e0f7ff;
+      --text-accent: #00e0ff;
+      --alert-color: #ff5555;
+      --nav-bg: rgba(0, 10, 30, 0.8);
+      --border-color: #00e0ff33;
+      --shadow-color: #00e0ff33;
+      --footer-bg: #0a0f2c;
+    }
+
+    [data-theme="light"] {
+      /* Light Theme */
+      --bg-primary: #f0f8ff;
+      --bg-secondary: #d4ebff;
+      --card-bg: #ffffff;
+      --text-primary: #003366;
+      --text-accent: #0077cc;
+      --alert-color: #ff3333;
+      --nav-bg: rgba(200, 230, 255, 0.9);
+      --border-color: #0077cc33;
+      --shadow-color: #0077cc22;
+      --footer-bg: #d4ebff;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary));
+      color: var(--text-primary);
+      overflow-x: hidden;
+      transition: all 0.3s ease;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background-color: var(--nav-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    nav h1 {
+      color: var(--text-accent);
+      font-size: 1.8rem;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    nav ul li {
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: color 0.2s;
+    }
+
+    nav ul li:hover {
+      color: var(--text-accent);
+    }
+
+    .theme-toggle {
+      background: var(--text-accent);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .hero {
+      height: 60vh;
+      background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') center/cover no-repeat;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="light"] .hero::after {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .hero-content {
+      position: relative;
+      text-align: center;
+      color: white;
+      z-index: 1;
+      max-width: 800px;
+      padding: 0 1rem;
+    }
+
+    .hero-content h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--text-accent);
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 0 10px var(--shadow-color);
+      transition: transform 0.2s;
+      border: 1px solid var(--border-color);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px var(--shadow-color);
+    }
+
+    .card h2 {
+      margin-bottom: 0.5rem;
+      color: var(--text-accent);
+      font-size: 1.2rem;
+    }
+
+    .status {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin: 0.5rem 0;
+    }
+
+    .alert {
+      color: var(--alert-color);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      background-color: var(--footer-bg);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin-top: 2rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .timestamp {
+      font-size: 0.8rem;
+      color: var(--text-primary);
+      opacity: 0.7;
+      margin-top: 0.5rem;
+    }
+
+    .simulation-controls {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .simulation-controls button {
+      background: var(--text-accent);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+      color: var(--bg-primary);
+    }
+
+    .simulation-controls button:hover {
+      filter: brightness(0.9);
+    }
+
+    /* History Table */
+    .history-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background-color: var(--card-bg);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .history-table th, .history-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .history-table th {
+      background-color: var(--bg-secondary);
+      color: var(--text-accent);
+    }
+
+    .history-table tr:hover {
+      background-color: var(--bg-secondary);
+    }
+
+    /* Compact Chart */
+    .chart-container {
+      max-width: 800px;
+      margin: 1rem auto;
+      padding: 1rem;
+      background-color: var(--card-bg);
+      border-radius: 1rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .chart {
+      width: 100%;
+      height: 250px;
+      margin-top: 0.5rem;
+    }
+
+    .chart-controls {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Tab Navigation */
+    .tab-container {
+      display: flex;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .tab {
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab.active {
+      border-bottom: 2px solid var(--text-accent);
+      color: var(--text-accent);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Voice Toggle */
+    .voice-toggle {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--text-accent);
+      color: var(--bg-primary);
+      border: none;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+      transition: all 0.3s ease;
+    }
+
+    .voice-toggle.muted {
+      background: var(--alert-color);
+    }
+    
+    /* Alert types */
+    .metal-alert {
+      color: #ff5555;
+    }
+    
+    .vibration-alert {
+      color: #ffaa00;
+    }
+    
+    .water-quality-alert {
+      color: #55aaff;
+    }
+    
+    .alert-details {
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <nav>
+    <h1>GhostNet Lite</h1>
+    <ul>
+      <li onclick="showTab('dashboard')">Dashboard</li>
+      <li onclick="showTab('history')">History</li>
+      <li onclick="showTab('charts')">Trends</li>
+      <li onclick="window.open('https://thingspeak.com/channels/3011293', '_blank')">ThingSpeak Data</li>
+      <li onclick="showTab('about')">About</li>
+      <li>
+        <button class="theme-toggle" onclick="toggleTheme()">
+          <span id="theme-icon">🌙</span> 
+          <span id="theme-text">Dark</span>
+        </button>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-content">
+      <h1>GhostNet Detection Simulation</h1>
+      <p>Real-time monitoring of marine hazards using simulated sensor data</p>
+      <div class="simulation-controls">
+        <button onclick="fetchData()">Refresh Data</button>
+        <button onclick="alert('This is a simulation connected to ThingSpeak API\nChannel ID: 3011293\nAPI Key: IUJ9R6L39CWUEDCR')">View API Details</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Tab -->
+  <div id="dashboard-tab" class="tab-content active">
+    <section class="dashboard">
+      <div class="card">
+        <h2>pH Level</h2>
+        <div class="status" id="ph">--</div>
+        <div class="timestamp" id="ph-time">Last update: --</div>
+      </div>
+      <div class="card">
+        <h2>TDS (ppm)</h2>
+        <div class="status" id="tds">--</div>
+        <div class="timestamp" id="tds-time">Last update: --</div>
+      </div>
+      <div class="card">
+        <h2>Turbidity (NTU)</h2>
+        <div class="status" id="turbidity">--</div>
+        <div class="timestamp" id="turbidity-time">Last update: --</div>
+      </div>
+      <div class="card">
+        <h2>Metal Detection</h2>
+        <div class="status" id="metal">--</div>
+        <div class="timestamp" id="metal-time">Last update: --</div>
+      </div>
+      <div class="card">
+        <h2>Vibration</h2>
+        <div class="status" id="vibration">--</div>
+        <div class="timestamp" id="vibration-time">Last update: --</div>
+      </div>
+      <div class="card">
+        <h2>System Status</h2>
+        <div class="status" id="alert">Waiting for data...</div>
+        <div id="alert-details" class="alert-details"></div>
+        <div class="timestamp" id="alert-time">Last update: --</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- History Tab -->
+  <div id="history-tab" class="tab-content">
+    <div class="history-container">
+      <h2 style="color: var(--text-accent);">Sensor Data History</h2>
+      <div class="simulation-controls">
+        <button onclick="loadHistory()">Refresh History</button>
+        <button onclick="clearHistory()">Clear Local History</button>
+      </div>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>pH</th>
+            <th>TDS (ppm)</th>
+            <th>Turbidity (NTU)</th>
+            <th>Metal</th>
+            <th>Vibration</th>
+            <th>Alert Type</th>
+          </tr>
+        </thead>
+        <tbody id="history-data">
+          <!-- History data will be inserted here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Charts Tab -->
+  <div id="charts-tab" class="tab-content">
+    <div class="chart-container">
+      <h2 style="color: var(--text-accent); text-align: center;">Sensor Trends</h2>
+      <div class="chart-controls">
+        <button onclick="refreshChart()">Refresh</button>
+      </div>
+      <canvas id="sensor-chart" class="chart"></canvas>
+    </div>
+  </div>
+
+  <!-- About Tab -->
+  <div id="about-tab" class="tab-content">
+    <section style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+      <h2 style="color: var(--text-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">About GhostNet Lite</h2>
+      <p>This is a simulated interface for the GhostNet marine hazard detection system. It connects to a ThingSpeak channel (ID: 3011293) to display real-time simulated sensor data including:</p>
+      <ul>
+        <li>Water pH levels</li>
+        <li>Total Dissolved Solids (TDS)</li>
+        <li>Turbidity (water clarity)</li>
+        <li>Metal detection (for ghost nets)</li>
+        <li>Vibration detection (for net movement)</li>
+      </ul>
+      <p>In a real deployment, this data would come from IoT buoys deployed in ocean waters to detect abandoned fishing nets and other marine hazards.</p>
+      
+      <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+        <h3 style="color: var(--text-accent);">Copyright Information</h3>
+        <p>© 2025 GhostNet Initiative. All rights reserved.</p>
+        <p>This software is licensed under the MIT License.</p>
+        <p>Developed as part of the Marine Conservation Hackathon.</p>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    &copy; 2025 GhostNet Initiative | Hackathon Project | Data from ThingSpeak Channel 3011293
+  </footer>
+
+  <!-- Voice Toggle Button -->
+  <button id="voice-toggle" class="voice-toggle" title="Toggle Voice Alerts">🔊</button>
+
+  <script>
+    // Initialize speech synthesis
+    let synth = window.speechSynthesis;
+    let voiceEnabled = localStorage.getItem('voiceEnabled') !== 'false';
+    let isSpeaking = false;
+    
+    // Load available voices
+    let voices = [];
+    function loadVoices() {
+      voices = synth.getVoices();
+    }
+    
+    // Load voices when they become available
+    if (synth.onvoiceschanged !== undefined) {
+      synth.onvoiceschanged = loadVoices;
+    }
+    
+    // Theme Toggle Functionality
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      document.getElementById('theme-icon').textContent = newTheme === 'dark' ? '🌙' : '☀️';
+      document.getElementById('theme-text').textContent = newTheme === 'dark' ? 'Dark' : 'Light';
+      
+      if (window.sensorChart) {
+        updateChartColors();
+      }
+    }
+
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.getElementById('theme-icon').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+    document.getElementById('theme-text').textContent = savedTheme === 'dark' ? 'Dark' : 'Light';
+
+    // Tab Navigation
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.getElementById(`${tabId}-tab`).classList.add('active');
+      
+      if (tabId === 'history') {
+        loadHistory();
+      } else if (tabId === 'charts') {
+        initializeChart();
+      }
+    }
+
+    // Voice Alerts Toggle
+    const voiceToggle = document.getElementById('voice-toggle');
+    
+    function toggleVoiceAlerts() {
+      voiceEnabled = !voiceEnabled;
+      localStorage.setItem('voiceEnabled', voiceEnabled);
+      
+      if (voiceEnabled) {
+        voiceToggle.classList.remove('muted');
+        voiceToggle.textContent = '🔊';
+        speak('Voice alerts enabled');
+      } else {
+        voiceToggle.classList.add('muted');
+        voiceToggle.textContent = '🔇';
+        // Cancel any ongoing speech
+        if (synth.speaking) {
+          synth.cancel();
+        }
+      }
+    }
+    
+    voiceToggle.addEventListener('click', toggleVoiceAlerts);
+    
+    if (!voiceEnabled) {
+      voiceToggle.classList.add('muted');
+      voiceToggle.textContent = '🔇';
+    }
+    
+    function speak(text) {
+      if (!voiceEnabled || isSpeaking) return;
+      
+      if (synth) {
+        // Cancel any ongoing speech
+        if (synth.speaking) {
+          synth.cancel();
+        }
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        
+        // Try to find a good voice
+        if (voices.length > 0) {
+          const preferredVoice = voices.find(voice => 
+            voice.lang.includes('en') && voice.name.includes('Female')
+          );
+          utterance.voice = preferredVoice || voices[0];
+        }
+        
+        isSpeaking = true;
+        utterance.onend = () => {
+          isSpeaking = false;
+        };
+        
+        synth.speak(utterance);
+      }
+    }
+
+    // Load voices immediately if available
+    loadVoices();
+
+    // ThingSpeak Data Fetching
+    async function fetchData() {
+      try {
+        document.getElementById('alert').textContent = 'Fetching data...';
+        document.getElementById('alert').className = 'status';
+        document.getElementById('alert-details').textContent = '';
+        
+        const response = await fetch('https://api.thingspeak.com/channels/3011293/feeds.json?api_key=IUJ9R6L39CWUEDCR&results=1');
+        const data = await response.json();
+        
+        if (data.feeds && data.feeds.length > 0) {
+          const latestFeed = data.feeds[0];
+          const timestamp = new Date(latestFeed.created_at).toLocaleString();
+          
+          // Update sensor values
+          const phValue = latestFeed.field2 ? parseFloat(latestFeed.field2).toFixed(2) : '--';
+          const tdsValue = latestFeed.field1 ? parseInt(latestFeed.field1) : '--';
+          const turbidityValue = latestFeed.field3 ? parseInt(latestFeed.field3) : '--';
+          const metalValue = latestFeed.field5 === "1" ? '⚠️ Metal Detected' : '✅ No Metal';
+          const vibrationValue = latestFeed.field4 ? parseFloat(latestFeed.field4).toFixed(2) + ' g' : '--';
+          
+          document.getElementById('ph').textContent = phValue;
+          document.getElementById('tds').textContent = tdsValue + ' ppm';
+          document.getElementById('turbidity').textContent = turbidityValue + ' NTU';
+          document.getElementById('metal').textContent = metalValue;
+          document.getElementById('vibration').textContent = vibrationValue;
+          
+          // Update timestamps
+          document.getElementById('ph-time').textContent = `Last update: ${timestamp}`;
+          document.getElementById('tds-time').textContent = `Last update: ${timestamp}`;
+          document.getElementById('turbidity-time').textContent = `Last update: ${timestamp}`;
+          document.getElementById('metal-time').textContent = `Last update: ${timestamp}`;
+          document.getElementById('vibration-time').textContent = `Last update: ${timestamp}`;
+          document.getElementById('alert-time').textContent = `Last update: ${timestamp}`;
+          
+          // Determine alert status and type
+          let alertActive = false;
+          let alertMessage = '✅ System Normal';
+          let alertDetails = '';
+          let alertType = 'normal';
+          
+          // Check for metal detection (field5)
+          if (latestFeed.field5 === "1") {
+            alertActive = true;
+            alertMessage = '🚨 METAL DETECTED';
+            alertDetails = 'Potential ghost net detected (metal signature)';
+            alertType = 'metal';
+          }
+          
+          // Check for vibration (field4) - assuming values > 0.5g are significant
+          if (latestFeed.field4 && parseFloat(latestFeed.field4) > 0.5) {
+            alertActive = true;
+            if (alertMessage === '✅ System Normal') {
+              alertMessage = '🚨 VIBRATION DETECTED';
+              alertDetails = 'Unusual movement detected in the water';
+              alertType = 'vibration';
+            } else {
+              alertMessage = '🚨 MULTIPLE ALERTS';
+              alertDetails += ' + Unusual movement detected';
+              alertType = 'multiple';
+            }
+          }
+          
+          // Check for water quality issues (pH, TDS, Turbidity)
+          if ((latestFeed.field2 && (parseFloat(latestFeed.field2) < 6.5 || parseFloat(latestFeed.field2) > 8.5)) ||
+              (latestFeed.field1 && parseInt(latestFeed.field1) > 500) ||
+              (latestFeed.field3 && parseInt(latestFeed.field3) > 10)) {
+            alertActive = true;
+            if (alertMessage === '✅ System Normal') {
+              alertMessage = '⚠️ WATER QUALITY ALERT';
+              alertDetails = 'Abnormal water parameters detected';
+              alertType = 'water-quality';
+            } else {
+              alertMessage = '🚨 MULTIPLE ALERTS';
+              alertDetails += ' + Abnormal water parameters';
+              alertType = 'multiple';
+            }
+          }
+          
+          // Update alert display
+          const alertElement = document.getElementById('alert');
+          alertElement.textContent = alertMessage;
+          
+          if (alertActive) {
+            alertElement.className = 'status alert';
+            // Add specific alert class for styling
+            if (alertType === 'metal') alertElement.classList.add('metal-alert');
+            else if (alertType === 'vibration') alertElement.classList.add('vibration-alert');
+            else if (alertType === 'water-quality') alertElement.classList.add('water-quality-alert');
+            
+            document.getElementById('alert-details').textContent = alertDetails;
+            
+            if (voiceEnabled) {
+              speak(`Alert! ${alertMessage}. ${alertDetails}`);
+            }
+          } else {
+            alertElement.className = 'status';
+            // Remove any alert-specific classes
+            alertElement.classList.remove('metal-alert', 'vibration-alert', 'water-quality-alert');
+          }
+          
+          // Save to history
+          saveToHistory({
+            timestamp,
+            ph: phValue,
+            tds: tdsValue,
+            turbidity: turbidityValue,
+            metal: metalValue,
+            vibration: vibrationValue,
+            alert: alertType === 'normal' ? 'Normal' : alertDetails
+          });
+        } else {
+          throw new Error('No data available');
+        }
+      } catch (error) {
+        document.getElementById('alert').textContent = '❌ Connection Error';
+        document.getElementById('alert').className = 'status alert';
+        console.error('Error fetching data:', error);
+      }
+    }
+
+    // History Functions
+    function saveToHistory(data) {
+      let history = JSON.parse(localStorage.getItem('sensorHistory') || '[]');
+      history.unshift(data);
+      if (history.length > 100) history = history.slice(0, 100);
+      localStorage.setItem('sensorHistory', JSON.stringify(history));
+      if (window.sensorChart) updateChart();
+    }
+    
+    function loadHistory() {
+      const history = JSON.parse(localStorage.getItem('sensorHistory') || '[]');
+      const historyTable = document.getElementById('history-data');
+      historyTable.innerHTML = history.length === 0 
+        ? '<tr><td colspan="7" style="text-align: center;">No history data available</td></tr>'
+        : history.map(entry => `
+          <tr>
+            <td>${entry.timestamp}</td>
+            <td>${entry.ph}</td>
+            <td>${entry.tds}</td>
+            <td>${entry.turbidity}</td>
+            <td>${entry.metal || '--'}</td>
+            <td>${entry.vibration || '--'}</td>
+            <td>${entry.alert || 'Normal'}</td>
+          </tr>
+        `).join('');
+    }
+    
+    function clearHistory() {
+      if (confirm('Are you sure you want to clear all local history data?')) {
+        localStorage.removeItem('sensorHistory');
+        loadHistory();
+        if (window.sensorChart) updateChart();
+      }
+    }
+
+    // Compact Chart Functions
+    let sensorChart = null;
+
+    function initializeChart() {
+      const ctx = document.getElementById('sensor-chart').getContext('2d');
+      if (sensorChart) sensorChart.destroy();
+      
+      sensorChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'pH',
+              data: [],
+              borderColor: '#00e0ff',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0.1,
+              yAxisID: 'y'
+            },
+            {
+              label: 'TDS (ppm)',
+              data: [],
+              borderColor: '#00ffaa',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0.1,
+              yAxisID: 'y1'
+            },
+            {
+              label: 'Turbidity (NTU)',
+              data: [],
+              borderColor: '#ffaa00',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0.1,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Vibration (g)',
+              data: [],
+              borderColor: '#ff55aa',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0.1,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)'
+              }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              grid: {
+                drawOnChartArea: false
+              },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)'
+              }
+            },
+            x: {
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)',
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 8
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: 'rgba(255, 255, 255, 0.7)',
+                boxWidth: 12,
+                padding: 8
+              }
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            }
+          }
+        }
+      });
+      
+      updateChart();
+      updateChartColors();
+    }
+    
+    function updateChart() {
+      const history = JSON.parse(localStorage.getItem('sensorHistory') || '[]');
+      const filteredHistory = history.slice(0, 20).reverse();
+      
+      if (sensorChart) {
+        sensorChart.data.labels = filteredHistory.map(entry => {
+          return new Date(entry.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        });
+        
+        sensorChart.data.datasets[0].data = filteredHistory.map(entry => parseFloat(entry.ph) || 0);
+        sensorChart.data.datasets[1].data = filteredHistory.map(entry => parseInt(entry.tds) || 0);
+        sensorChart.data.datasets[2].data = filteredHistory.map(entry => parseInt(entry.turbidity) || 0);
+        sensorChart.data.datasets[3].data = filteredHistory.map(entry => {
+          if (!entry.vibration) return 0;
+          return parseFloat(entry.vibration.replace(' g', '')) || 0;
+        });
+        
+        sensorChart.update();
+      }
+    }
+    
+    function updateChartColors() {
+      if (!sensorChart) return;
+      const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+      const textColor = isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
+      const gridColor = isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+      
+      sensorChart.options.scales.y.ticks.color = textColor;
+      sensorChart.options.scales.x.ticks.color = textColor;
+      sensorChart.options.scales.y.grid.color = gridColor;
+      sensorChart.options.scales.x.grid.color = gridColor;
+      sensorChart.options.plugins.legend.labels.color = textColor;
+      
+      sensorChart.update();
+    }
+
+    function refreshChart() {
+      updateChart();
+    }
+
+    // Initial load
+    fetchData();
+    setInterval(fetchData, 5000);
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'r' || e.key === 'R') fetchData();
+    });
+  </script>
+</body>
+</html>
